@@ -1,4 +1,4 @@
-// TRXUtil by Ari Weinstein. Portions from the Embedded Xinu project.
+// TRXUtil by Ari Weinstein. BSD license. Portions from the Embedded Xinu project.
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
