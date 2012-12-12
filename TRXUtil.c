@@ -65,8 +65,9 @@ unsigned int calcCRC(char *data, unsigned int length) {
     return crc;
 }
 
-int writeTRX(int newHeader, char *filename, struct TRXHeader *expectedHeader, struct TRXHeader **currentHeaderPointer) {
+int writeTRX(int newHeader, char *filename, struct TRXHeader *expectedHeader, struct TRXHeader **currentHeaderPointer, int linksys) {
     struct TRXHeader *currentHeader = *currentHeaderPointer;
+    unsigned int newlen = expectedHeader->len;
     int headerLength = sizeof(struct TRXHeader);
     if (newHeader) {
         // Write new header
@@ -79,6 +80,10 @@ int writeTRX(int newHeader, char *filename, struct TRXHeader *expectedHeader, st
     } else {
         // Overwrite existing header
         memcpy(currentHeader, expectedHeader, headerLength);
+        if (linksys) {
+            currentHeader->len -= 978;
+            expectedHeader->len -= 978;
+        }
     }
     
     // Recalculate checksum
@@ -87,15 +92,15 @@ int writeTRX(int newHeader, char *filename, struct TRXHeader *expectedHeader, st
     
     // Write out revised file
     printf("Writing revised binary with TRX header to %s... ", filename);
-    writeFile(filename, (char *)currentHeader, currentHeader->len);
+    writeFile(filename, (char *)currentHeader, newlen);
     printf("done!\n");
 }
 
-int validateTRX(int size, char *data, char *filename) {
+int validateTRX(int size, char *data, char *filename, int linksys) {
     int retVal = 1;
 
     // Append .trx to filename in case we write a new one
-    char *outFilename = malloc(strlen(filename)+4);
+    char *outFilename = malloc(strlen(filename)+5);
     sprintf(outFilename, "%s.trx", filename);
     
     // Cast the beginning of the file as a TRX header, and fill in expected header values
@@ -115,7 +120,7 @@ int validateTRX(int size, char *data, char *filename) {
     } else {
         printf("TRX header not found.\n");
         printf("\tMagic expected: %08X\t Magic found: %08X\n", expectedHeader->magic, currentHeader->magic);
-        writeTRX(1, outFilename, expectedHeader, &currentHeader);
+        writeTRX(1, outFilename, expectedHeader, &currentHeader, linksys);
         retVal = -1;
     }
     
@@ -123,7 +128,7 @@ int validateTRX(int size, char *data, char *filename) {
     if (currentHeader->len < sizeof(struct TRXHeader)) {
         printf("Error: TRX file size is too small\n");
         printf("\tFile size is smaller than TRX header size (28 bytes)\n");
-        writeTRX(0, outFilename, expectedHeader, &currentHeader);
+        writeTRX(0, outFilename, expectedHeader, &currentHeader, linksys);
         retVal = -2;
     }
 
@@ -133,7 +138,7 @@ int validateTRX(int size, char *data, char *filename) {
     } else {
         printf("Error: Expected and actual file length do not match\n");
         printf("\tLength expected: %d\tLength found: %d\n", expectedHeader->len, currentHeader->len);
-        writeTRX(0, outFilename, expectedHeader, &currentHeader);
+        writeTRX(0, outFilename, expectedHeader, &currentHeader, linksys);
         retVal = -2;
     }
 
@@ -144,7 +149,7 @@ int validateTRX(int size, char *data, char *filename) {
         } else {
             printf("Error: Bad TRX checksum\n");
             printf("\tExpected: %08X\tFound: %08X\n", expectedHeader->crc, currentHeader->crc);
-            writeTRX(0, outFilename, expectedHeader, &currentHeader);
+            writeTRX(0, outFilename, expectedHeader, &currentHeader, linksys);
             retVal = -2;
         }
     }
@@ -158,12 +163,14 @@ int validateTRX(int size, char *data, char *filename) {
 
 int main(int argc, char *argv[]) {
     if (argc > 1) {
+        int linksys = 0;
+        if (argc > 2 && argv[2] == "-l") linksys = 1;
         char *data, *filename = argv[1];
         int size = readFile(filename, &data);
-        int result = validateTRX(size, data, filename);
+        int result = validateTRX(size, data, filename, linksys);
         if (result == 1) printf("TRX header is valid!\n");
 	} else {
-        printf("TRXUtil verifies the TRX header of a binary file. If it is incorrect or missing, a new file will be written to <oldfilename>.trx with a complete TRX header. Written by Ari Weinstein on 6/26/12.\nUsage: %s <file>\n\nExample:\%s WR1043ND_firmware.bin\n", argv[0], argv[0]);
+        printf("TRXUtil verifies the TRX header of a binary file. If it is incorrect or missing, a new file will be written to <oldfilename>.trx with a complete TRX header. Passing -l (for Linksys mode) will write out a header with a 932-byte smaller file size, which some Linksys web GUIs require for some reason. Written by Ari Weinstein on 6/26/12.\nUsage: %s <file> [-l]\n\nExample:\n%s WR1043ND_firmware.bin\n", argv[0], argv[0]);
 	}
 	return 0;
 }
