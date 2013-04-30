@@ -164,7 +164,9 @@ int validateTRX(int size, char *data, char *filename, int linksys) {
 int main(int argc, char *argv[]) {
     if (argc > 1) {
         int linksys = 0;
-        if (argc > 2 && argv[2] == "-l") linksys = 1;
+        if (argc > 2 && strcmp(argv[2], "-l") == 0)
+            linksys = 1;
+
         char *data, *filename = argv[1];
         int size = readFile(filename, &data);
         int result = validateTRX(size, data, filename, linksys);
