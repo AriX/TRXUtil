@@ -109,10 +109,10 @@ int validateTRX(int size, char *data, char *filename, int linksys) {
     expectedHeader->magic = TRX_MAGIC;
     expectedHeader->len = size;
     if (size > sizeof(struct TRXHeader)) expectedHeader->crc = calcCRC((char *)(&currentHeader->flags_vers), expectedHeader->len-3*sizeof(int));
-    expectedHeader->flags_vers = 0x10001; // Why? I don't know.
-    expectedHeader->offsets[0] = 0x1C; // Again, no idea.
-    expectedHeader->offsets[1] = 0x00;
-    expectedHeader->offsets[2] = 0x00;
+    expectedHeader->flags_vers = currentHeader->flags_vers;
+    expectedHeader->offsets[0] = currentHeader->offsets[0];
+    expectedHeader->offsets[1] = currentHeader->offsets[1];
+    expectedHeader->offsets[2] = currentHeader->offsets[2];
 
     // Validate magic number
     if (currentHeader->magic == expectedHeader->magic) {
@@ -120,6 +120,13 @@ int validateTRX(int size, char *data, char *filename, int linksys) {
     } else {
         printf("TRX header not found.\n");
         printf("\tMagic expected: %08X\t Magic found: %08X\n", expectedHeader->magic, currentHeader->magic);
+        
+        // Firmware doesn't actually have a TRX header, so populate its other fields
+        expectedHeader->flags_vers = 0x10000; // Why? I don't know.
+        expectedHeader->offsets[0] = 0x1C; // Again, no idea.
+        expectedHeader->offsets[1] = 0x0930;
+        expectedHeader->offsets[2] = 0x1DDD0C;
+        
         writeTRX(1, outFilename, expectedHeader, &currentHeader, linksys);
         retVal = -1;
     }
