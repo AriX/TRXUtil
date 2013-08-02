@@ -47,9 +47,9 @@ unsigned int calcCRC(char *data, unsigned int length) {
     if (!crc32) {
         unsigned long crc, poly = 0xEDB88320L;
         int n, bit;
-        if (crc32) return;
+        if (crc32) return 0;
         crc32 = (unsigned long *)malloc(256 * sizeof(unsigned long));
-        if (crc32 == NULL) return;
+        if (crc32 == NULL) return 0;
 
         for (n = 0; n < 256; n++) {
             crc = (unsigned long)n;
@@ -65,7 +65,7 @@ unsigned int calcCRC(char *data, unsigned int length) {
     return crc;
 }
 
-int writeTRX(int newHeader, char *filename, struct TRXHeader *expectedHeader, struct TRXHeader **currentHeaderPointer, int linksys) {
+void writeTRX(int newHeader, char *filename, struct TRXHeader *expectedHeader, struct TRXHeader **currentHeaderPointer, int linksys) {
     struct TRXHeader *currentHeader = *currentHeaderPointer;
     unsigned int newlen = expectedHeader->len;
     int headerLength = sizeof(struct TRXHeader);
